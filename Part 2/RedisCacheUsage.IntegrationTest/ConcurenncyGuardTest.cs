@@ -13,14 +13,14 @@ namespace RedisCacheUsage.IntegrationTest
             _client = webAppFactory.CreateClient();
         }
         [TestMethod]
-        public async Task CheckSingleCase()
+        public async Task Scenario_1_CheckSingleCase()
         {
             var response = await AddEvent("Test");
             Assert.IsTrue(response.IsSuccessStatusCode);
         }
 
         [TestMethod]
-        public async Task CheckMultipleCase()
+        public async Task Scenario_2_CheckMultipleCase()
         {
             var response = await AddEvent("Test");
             Assert.IsTrue(response.IsSuccessStatusCode);
@@ -29,7 +29,7 @@ namespace RedisCacheUsage.IntegrationTest
         }
 
         [TestMethod]
-        public async Task CheckConcurrentCreateCases()
+        public async Task Scenario_3_CheckConcurrentCreateCases()
         {
             var responseList=new List<Task<HttpResponseMessage>>();
             for (int i = 0; i < 10; i++)

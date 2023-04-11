@@ -20,7 +20,7 @@ namespace RedisCacheUsage.Controllers
             var result = await _concurrencyGuard.AddEvent(eventName);
             if (result)
             {
-                return Ok();
+                return Ok("The event was added.");
             }
             return BadRequest("The event already exists.");
         }
@@ -31,7 +31,7 @@ namespace RedisCacheUsage.Controllers
             var result = await _concurrencyGuard.RemoveEvent(eventName);
             if (result)
             {
-                return Ok();
+                return Ok("The event was removed.");
             }
             return BadRequest("The event does not exist.");
         }
