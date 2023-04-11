@@ -6,6 +6,7 @@ namespace RedisCacheUsage.IntegrationTest
     public class ConcurenncyGuardTest
     {
         private readonly HttpClient _client;
+        private const string DefaultEventName = "Test";
 
         public ConcurenncyGuardTest()
         {
@@ -13,43 +14,55 @@ namespace RedisCacheUsage.IntegrationTest
             _client = webAppFactory.CreateClient();
         }
         [TestMethod]
-        public async Task Scenario_1_CheckSingleCase()
+        public async Task Scenario_1_AddEventWhenNotExistsShouldPass()
         {
-            var response = await AddEvent("Test");
+            var response = await AddEvent(DefaultEventName);
             Assert.IsTrue(response.IsSuccessStatusCode);
         }
 
         [TestMethod]
-        public async Task Scenario_2_CheckMultipleCase()
+        public async Task Scenario_2_AddEventWithSameNameBeforeFirstOneIsDoneShoudFail()
         {
-            var response = await AddEvent("Test");
+            var response = await AddEvent(DefaultEventName);
             Assert.IsTrue(response.IsSuccessStatusCode);
-            response = await AddEvent("Test");
+
+            response = await AddEvent(DefaultEventName);
             Assert.IsFalse(response.IsSuccessStatusCode);
+
+            response = await RemoveEvent(DefaultEventName);
+            Assert.IsTrue(response.IsSuccessStatusCode);
+
+            response = await AddEvent(DefaultEventName);
+            Assert.IsTrue(response.IsSuccessStatusCode);
         }
 
         [TestMethod]
-        public async Task Scenario_3_CheckConcurrentCreateCases()
+        public async Task Scenario_3_ConcurrentAddEventWithSameNameShouldFailExceptOne()
         {
-            var responseList=new List<Task<HttpResponseMessage>>();
+            var responseList = new List<Task<HttpResponseMessage>>();
             for (int i = 0; i < 10; i++)
             {
-                var response = AddEvent("Test");
+                var response = AddEvent(DefaultEventName);
                 responseList.Add(response);
             }
 
             var successCount = 0;
             foreach (var response in responseList)
             {
-                var message=await response;
-                successCount= message.IsSuccessStatusCode ? successCount + 1 : successCount;
+                var message = await response;
+                successCount = message.IsSuccessStatusCode ? successCount + 1 : successCount;
             }
             Assert.AreEqual(1, successCount);
         }
 
         private Task<HttpResponseMessage> AddEvent(string eventName)
         {
-            return _client.PostAsync("/ConcurrencyGuard?eventName=Test", null);
+            return _client.PostAsync($"/ConcurrencyGuard?eventName={eventName}", null);
+        }
+
+        private Task<HttpResponseMessage> RemoveEvent(string eventName)
+        {
+            return _client.DeleteAsync($"/ConcurrencyGuard?eventName={eventName}");
         }
 
         [TestCleanup()]
@@ -57,7 +70,7 @@ namespace RedisCacheUsage.IntegrationTest
         {
             var webAppFactory = new WebApplicationFactory<Program>();
             var client = webAppFactory.CreateClient();
-            var response = await client.DeleteAsync("/ConcurrencyGuard?eventName=Test");
+            var response = await client.DeleteAsync($"/ConcurrencyGuard?eventName={DefaultEventName}");
         }
     }
 }

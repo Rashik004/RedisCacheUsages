@@ -23,15 +23,26 @@ public class ConcurrencyGuard
     {
         var key = GetEventName(eventName);
         var value = GetDefaultByteARray();
-        using var redLock = await _redLockFactory.CreateLockAsync(key, TimeSpan.FromSeconds(1));
-        if(redLock.IsAcquired==false)
+        var dateTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";
+
+        using var redLock = await _redLockFactory.CreateLockAsync(key, TimeSpan.FromSeconds(2));
+        if (redLock.IsAcquired == false)
         {
-            System.Console.WriteLine("Could not acquire lock");
+            System.Console.WriteLine(
+                $"{DateTime.UtcNow.ToString(dateTimeFormat)} Could not acquire lockfor {eventName}");
             return false;
         }
-        if(await _distributedCache.GetAsync(key) == null)
+        System.Console.WriteLine(
+                $"{DateTime.UtcNow.ToString(dateTimeFormat)} Acquired lock for {eventName}");
+        if (await _distributedCache.GetAsync(key) == null)
         {
+            System.Console.WriteLine(
+                $"{DateTime.UtcNow.ToString(dateTimeFormat)} No duplicate event found. Adding Event: {eventName}");
+
             await _distributedCache.SetAsync(key, value);
+            System.Console.WriteLine(
+                $"{DateTime.UtcNow.ToString(dateTimeFormat)} Added Event: {eventName}");
+
             return true;
         }
         return false;
