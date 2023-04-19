@@ -10,8 +10,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-RegisterRedisCache(builder);
-AddRedisCacheForDistributedCaching(builder);
+var multiplexer = RegisterRedisCache(builder);
+AddRedisCacheForDistributedCaching(builder, multiplexer);
 builder.Services.AddSingleton<ConcurrencyGuard>();
 
 var app = builder.Build();
@@ -29,24 +29,22 @@ app.MapControllers();
 
 app.Run();
 
-void AddRedisCacheForDistributedCaching(WebApplicationBuilder builder)
+void AddRedisCacheForDistributedCaching(WebApplicationBuilder builder, ConnectionMultiplexer multiplexer)
 {
-    var redisConnectionString = builder.Configuration.GetSection("RedisConnectionString").Value;
-    var configurationOptions = ConfigurationOptions.Parse(redisConnectionString);
-    configurationOptions.ClientName="RedisUsage.IDistributedCacheClient";
     builder.Services.AddStackExchangeRedisCache(options =>
     {
-        options.ConfigurationOptions=configurationOptions;
+        options.ConnectionMultiplexerFactory = async () => { return await Task.FromResult(multiplexer); };
     });
 }
 
-void RegisterRedisCache(WebApplicationBuilder builder)
+ConnectionMultiplexer RegisterRedisCache(WebApplicationBuilder builder)
 {
     var redisConnectionString = builder.Configuration.GetSection("RedisConnectionString").Value;
     var configurationOptions = ConfigurationOptions.Parse(redisConnectionString);
     configurationOptions.ClientName="RedisUsage.GeneralClient";
     var multiplexer = ConnectionMultiplexer.Connect(configurationOptions);
     builder.Services.AddSingleton<IConnectionMultiplexer>(multiplexer);
+    return multiplexer;
 }
 
 public partial class Program {}

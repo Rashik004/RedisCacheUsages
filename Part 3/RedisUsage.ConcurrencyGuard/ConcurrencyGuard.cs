@@ -11,14 +11,10 @@ public class ConcurrencyGuard
     private readonly IDistributedCache _distributedCache;
     private readonly RedLockFactory _redLockFactory;
 
-    public ConcurrencyGuard(IDistributedCache distributedCache, IConfiguration configuration)
+    public ConcurrencyGuard(IDistributedCache distributedCache, IConnectionMultiplexer multiplexer)
     {
         _distributedCache = distributedCache;
-        var redisConnectionString = configuration.GetSection("RedisConnectionString").Value;
-        var configurationOptions = ConfigurationOptions.Parse(redisConnectionString);
-        configurationOptions.ClientName="RedisUsage.RedlockClient";
-        var multiplexer = ConnectionMultiplexer.Connect(configurationOptions);
-        _redLockFactory = RedLockFactory.Create(new List<RedLockMultiplexer> { multiplexer });
+        _redLockFactory = RedLockFactory.Create(new List<RedLockMultiplexer> { multiplexer as ConnectionMultiplexer});
     }
 
     public async Task<bool> AddEvent(string eventName)
